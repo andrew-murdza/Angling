@@ -28,6 +28,9 @@ bin/
 
 *.DS_Store
 
-# fabric
+# Local development runs and diagnostics
 
 run/
+*.log
+release/
+tools/__pycache__/

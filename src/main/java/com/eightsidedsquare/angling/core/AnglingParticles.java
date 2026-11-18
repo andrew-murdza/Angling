@@ -1,19 +1,9 @@
 package com.eightsidedsquare.angling.core;
-
-import net.fabricmc.fabric.api.particle.v1.FabricParticleTypes;
 import net.minecraft.particle.DefaultParticleType;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
-
-import static com.eightsidedsquare.angling.core.AnglingMod.MOD_ID;
-
-public class AnglingParticles {
-
-    public static DefaultParticleType ALGAE = Registry.register(Registry.PARTICLE_TYPE, new Identifier(MOD_ID, "algae"), FabricParticleTypes.simple(true));
-    public static DefaultParticleType WORM = Registry.register(Registry.PARTICLE_TYPE, new Identifier(MOD_ID, "worm"), FabricParticleTypes.simple(true));
-
-    public static void init() {
-
-    }
-
+public final class AnglingParticles {
+    public static final DefaultParticleType ALGAE = AnglingRegistration.queue(RegistryKeys.PARTICLE_TYPE, new Identifier("angling", "algae"), new DefaultParticleType(true));
+    public static final DefaultParticleType WORM = AnglingRegistration.queue(RegistryKeys.PARTICLE_TYPE, new Identifier("angling", "worm"), new DefaultParticleType(true));
+    public static void init() {}
 }

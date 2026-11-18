@@ -1,0 +1,21 @@
+{
+  "type": "angling:noise_patch",
+  "config": {
+    "to_place": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "angling:duckweed"
+      }
+    },
+    "offset": -2,
+    "octave": 2,
+    "threshold": 0.35,
+    "radius": {
+      "type": "minecraft:uniform",
+      "value": {
+        "min_inclusive": 6,
+        "max_inclusive": 12
+      }
+    }
+  }
+}

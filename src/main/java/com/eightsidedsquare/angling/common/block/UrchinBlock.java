@@ -10,6 +10,7 @@ import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.item.ItemUsage;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.state.StateManager;
@@ -42,13 +43,14 @@ public class UrchinBlock extends PlantBlock implements BlockEntityProvider, Wate
     public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
         ItemStack stack = player.getStackInHand(hand);
         if(stack.isOf(Items.WATER_BUCKET)) {
-            stack.decrement(1);
-            player.giveItemStack(new ItemStack(AnglingItems.URCHIN_BUCKET));
+            if (world.isClient) return ActionResult.SUCCESS;
+            player.setStackInHand(hand, ItemUsage.exchangeStack(stack, player, new ItemStack(AnglingItems.URCHIN_BUCKET.get())));
             world.playSound(null, pos.getX() + 0.5d, pos.getY(), pos.getZ() + 0.5d, SoundEvents.ITEM_BUCKET_FILL, SoundCategory.BLOCKS, 1, 1);
             world.setBlockState(pos, (state.get(WATERLOGGED) ? Blocks.WATER : Blocks.AIR).getDefaultState(), Block.NOTIFY_ALL);
             return ActionResult.success(world.isClient);
         }else if(world.getBlockEntity(pos) instanceof UrchinBlockEntity entity) {
             if(entity.getHat().isEmpty() && !stack.isEmpty()) {
+                if (world.isClient) return ActionResult.SUCCESS;
                 ItemStack hatStack = stack.copy();
                 hatStack.setCount(1);
                 entity.setHat(hatStack);
@@ -58,6 +60,7 @@ public class UrchinBlock extends PlantBlock implements BlockEntityProvider, Wate
                 entity.update();
                 return ActionResult.success(world.isClient);
             }else if(stack.isEmpty() && !entity.getHat().isEmpty()) {
+                if (world.isClient) return ActionResult.SUCCESS;
                 player.giveItemStack(entity.getHat().copy());
                 entity.setHat(ItemStack.EMPTY);
                 player.playSound(SoundEvents.ITEM_ARMOR_EQUIP_GENERIC, 1, 1);
@@ -71,7 +74,7 @@ public class UrchinBlock extends PlantBlock implements BlockEntityProvider, Wate
 
     public BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos) {
         if (state.get(WATERLOGGED)) {
-            world.createAndScheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
+            world.scheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
         }
         if(!canPlaceAt(state, world, pos)) {
             return Blocks.AIR.getDefaultState();
@@ -83,7 +86,7 @@ public class UrchinBlock extends PlantBlock implements BlockEntityProvider, Wate
     @Override
     public void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
 
-        if (!state.isOf(newState.getBlock()) && world.getBlockEntity(pos) instanceof UrchinBlockEntity entity) {
+        if (!world.isClient && !state.isOf(newState.getBlock()) && world.getBlockEntity(pos) instanceof UrchinBlockEntity entity) {
             ItemScatterer.spawn(world, pos.getX() + 0.5d, pos.getY() + 0.5d, pos.getZ() + 0.5d, entity.getHat().copy());
         }
 
@@ -123,7 +126,7 @@ public class UrchinBlock extends PlantBlock implements BlockEntityProvider, Wate
 
     @Override
     public ItemStack getPickStack(BlockView world, BlockPos pos, BlockState state) {
-        return new ItemStack(AnglingItems.URCHIN_BUCKET);
+        return new ItemStack(AnglingItems.URCHIN_BUCKET.get());
     }
 
     @Nullable

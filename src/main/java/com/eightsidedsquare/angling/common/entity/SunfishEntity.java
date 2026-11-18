@@ -10,6 +10,7 @@ import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.passive.SchoolingFishEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
@@ -19,21 +20,22 @@ import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib3.core.IAnimatable;
-import software.bernie.geckolib3.core.PlayState;
-import software.bernie.geckolib3.core.builder.AnimationBuilder;
-import software.bernie.geckolib3.core.controller.AnimationController;
-import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
-import software.bernie.geckolib3.core.manager.AnimationData;
-import software.bernie.geckolib3.core.manager.AnimationFactory;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.Objects;
 
-public class SunfishEntity extends SchoolingFishEntity implements IAnimatable {
+public class SunfishEntity extends SchoolingFishEntity implements GeoEntity {
 
-    AnimationFactory factory = new AnimationFactory(this);
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
-    private static final TrackedData<SunfishVariant> VARIANT;
+    private static final TrackedData<String> VARIANT;
 
     public SunfishEntity(EntityType<? extends SchoolingFishEntity> entityType, World world) {
         super(entityType, world);
@@ -42,7 +44,7 @@ public class SunfishEntity extends SchoolingFishEntity implements IAnimatable {
     @Override
     protected void initDataTracker() {
         super.initDataTracker();
-        dataTracker.startTracking(VARIANT, AnglingUtil.getRandomTagValue(world, SunfishVariant.Tag.NATURAL_SUNFISH, random));
+        dataTracker.startTracking(VARIANT, "angling:pumpkinseed");
     }
 
     @Override
@@ -52,7 +54,7 @@ public class SunfishEntity extends SchoolingFishEntity implements IAnimatable {
 
     @Override
     public ItemStack getBucketItem() {
-        return new ItemStack(AnglingItems.SUNFISH_BUCKET);
+        return new ItemStack(AnglingItems.SUNFISH_BUCKET.get());
     }
 
     @Nullable
@@ -69,7 +71,7 @@ public class SunfishEntity extends SchoolingFishEntity implements IAnimatable {
 
     @Nullable
     public SunfishVariant getVariant() {
-        return dataTracker.get(VARIANT);
+        return SunfishVariant.fromId(dataTracker.get(VARIANT));
     }
 
     @Override
@@ -77,6 +79,14 @@ public class SunfishEntity extends SchoolingFishEntity implements IAnimatable {
         super.copyDataToStack(stack);
         NbtCompound nbtCompound = stack.getOrCreateNbt();
         nbtCompound.putString("BucketVariantTag", SunfishVariant.getId(getVariant()).toString());
+    }
+
+    @Override
+    public void copyDataFromNbt(NbtCompound nbt) {
+        super.copyDataFromNbt(nbt);
+        if (nbt.contains("BucketVariantTag", NbtElement.STRING_TYPE)) {
+            setVariant(SunfishVariant.fromId(nbt.getString("BucketVariantTag")));
+        }
     }
 
     @Override
@@ -93,45 +103,48 @@ public class SunfishEntity extends SchoolingFishEntity implements IAnimatable {
         if (spawnReason == SpawnReason.BUCKET && entityNbt != null && entityNbt.contains("BucketVariantTag", NbtElement.STRING_TYPE)) {
             this.setVariant(SunfishVariant.fromId(entityNbt.getString("BucketVariantTag")));
         }
+        else {
+            setVariant(AnglingUtil.getRandomTagValue(getWorld(), SunfishVariant.Tag.NATURAL_SUNFISH, random));
+        }
         return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
     }
 
     public void setVariant(SunfishVariant variant) {
-        dataTracker.set(VARIANT, variant);
+        dataTracker.set(VARIANT, SunfishVariant.getId(variant).toString());
     }
 
     @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
-        nbt.putString("Variant", SunfishVariant.getId(dataTracker.get(VARIANT)).toString());
+        nbt.putString("Variant", dataTracker.get(VARIANT));
     }
 
     @Override
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
-        dataTracker.set(VARIANT, SunfishVariant.fromId(nbt.getString("Variant")));
+        setVariant(SunfishVariant.fromId(nbt.getString("Variant")));
     }
 
     static {
-        VARIANT = DataTracker.registerData(SunfishEntity.class, SunfishVariant.TRACKED_DATA_HANDLER);
+        VARIANT = DataTracker.registerData(SunfishEntity.class, TrackedDataHandlerRegistry.STRING);
     }
 
     @Override
-    public void registerControllers(AnimationData animationData) {
-        animationData.addAnimationController(new AnimationController<>(this, "controller", 2, this::controller));
+    public void registerControllers(AnimatableManager.ControllerRegistrar animationData) {
+        animationData.add(new AnimationController<>(this, "controller", 2, this::controller));
     }
 
-    private PlayState controller(AnimationEvent<SunfishEntity> event) {
+    private PlayState controller(AnimationState<SunfishEntity> event) {
         if(!touchingWater) {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.sunfish.flop", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.sunfish.flop"));
         }else {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.sunfish.idle", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.sunfish.idle"));
         }
         return PlayState.CONTINUE;
     }
 
     @Override
-    public AnimationFactory getFactory() {
-        return factory;
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 }

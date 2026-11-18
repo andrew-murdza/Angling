@@ -1,17 +1,17 @@
 package com.eightsidedsquare.angling.core;
 
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.SplashOverlay;
+import net.minecraftforge.fml.ModList;
+import com.eightsidedsquare.angling.common.entity.util.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
-import net.minecraft.tag.TagKey;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryEntry;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.world.World;
 
 import java.util.List;
@@ -21,6 +21,13 @@ import java.util.function.Function;
 public class AnglingUtil {
 
     public static <T> List<T> getTagValues(World world, TagKey<T> tagKey) {
+        for (AnglingVariantRegistry<?> registry : List.of(SunfishVariant.REGISTRY, CrabVariant.REGISTRY,
+                SeaSlugColor.REGISTRY, SeaSlugPattern.REGISTRY)) {
+            if (registry.getKey().equals(tagKey.registry())) {
+                @SuppressWarnings("unchecked") AnglingVariantRegistry<T> typed = (AnglingVariantRegistry<T>) registry;
+                return typed.getTagValues(tagKey);
+            }
+        }
         return world.getRegistryManager().get(tagKey.registry()).getEntryList(tagKey).map(entries -> entries.stream().map(RegistryEntry::value).toList()).orElse(List.of());
     }
 
@@ -30,7 +37,7 @@ public class AnglingUtil {
 
     public static NbtCompound entityToNbt(Entity entity, boolean stripData) {
         NbtCompound nbt = entity.writeNbt(new NbtCompound());
-        nbt.putString("id", Registry.ENTITY_TYPE.getId(entity.getType()).toString());
+        nbt.putString("id", Registries.ENTITY_TYPE.getId(entity.getType()).toString());
         if(stripData){
             stripEntityNbt(nbt);
         }
@@ -38,7 +45,7 @@ public class AnglingUtil {
     }
 
     public static boolean runningSodium() {
-        return FabricLoader.getInstance().isModLoaded("sodium");
+        return ModList.get().isLoaded("embeddium") || ModList.get().isLoaded("rubidium");
     }
 
     public static void stripEntityNbt(NbtCompound nbt) {
@@ -68,6 +75,7 @@ public class AnglingUtil {
         nbt.remove("Pos");
         nbt.remove("Rotation");
         nbt.remove("cardinal_components");
+        nbt.remove(com.eightsidedsquare.angling.cca.FishSpawningComponent.NBT_KEY);
         nbt.remove("UUID");
     }
 
@@ -81,8 +89,5 @@ public class AnglingUtil {
         return Optional.ofNullable(EntityType.loadEntityWithPassengers(nbt, world, Function.identity()));
     }
 
-    public static boolean isReloadingResources() {
-        return MinecraftClient.getInstance().getOverlay() instanceof SplashOverlay splashOverlay && splashOverlay.reloading;
-    }
 
 }

@@ -1,0 +1,27 @@
+allprojects {
+    afterEvaluate { p ->
+        p.sourceSets.create('clienttest') {
+            java.srcDir p.file('qa/client/src/java')
+            resources.srcDir p.file('qa/client/src/resources')
+            compileClasspath += p.sourceSets.main.compileClasspath
+            runtimeClasspath += p.sourceSets.main.runtimeClasspath
+        }
+        def qaJar = p.tasks.register('clientQaJar', Jar) {
+            from p.sourceSets.clienttest.output
+            archiveBaseName = 'angling-client-qa'
+            archiveVersion = '1.0.0'
+            archiveClassifier = 'dev'
+            destinationDirectory = p.file('build/client-qa')
+        }
+        def remapType = p.tasks.named('remapJar').get().class.superclass
+        p.tasks.register('remapClientQaJar', remapType) {
+            dependsOn qaJar
+            inputFile.set(qaJar.flatMap { it.archiveFile })
+            archiveBaseName = 'angling-client-qa'
+            archiveVersion = '1.0.0'
+            archiveClassifier = ''
+            destinationDirectory = p.file('build/client-qa')
+        }
+    }
+}
+

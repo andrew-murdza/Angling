@@ -3,6 +3,7 @@ package com.eightsidedsquare.angling.common.entity.ai;
 import com.eightsidedsquare.angling.cca.AnglingEntityComponents;
 import com.eightsidedsquare.angling.cca.FishSpawningComponent;
 import com.eightsidedsquare.angling.core.AnglingUtil;
+import com.eightsidedsquare.angling.core.tags.AnglingEntityTypeTags;
 import net.minecraft.entity.ExperienceOrbEntity;
 import net.minecraft.entity.ai.TargetPredicate;
 import net.minecraft.entity.ai.goal.Goal;
@@ -79,7 +80,8 @@ public class FishMateGoal extends Goal {
 
     private boolean canBeBred(FishEntity fishEntity) {
         FishSpawningComponent component = AnglingEntityComponents.FISH_SPAWNING.get(fishEntity);
-        return component.isInLove() && !component.isCarryingRoe() && !component.hasCooldown();
+        return fishEntity.getType().isIn(AnglingEntityTypeTags.SPAWNING_FISH)
+                && component.isInLove() && !component.isCarryingRoe() && !component.hasCooldown();
     }
 
     @Nullable

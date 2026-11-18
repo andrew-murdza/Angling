@@ -1,104 +1,80 @@
 plugins {
-	id 'fabric-loom' version '1.0-SNAPSHOT'
-	id 'maven-publish'
+    id 'dev.architectury.loom' version '1.9.436'
+    id 'maven-publish'
 }
-
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
-
-archivesBaseName = project.archives_base_name
 version = project.mod_version
 group = project.maven_group
-
-loom {
-	accessWidenerPath = file("src/main/resources/angling.accesswidener")
-}
-
-repositories {
-	maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
-
-	maven {
-		name = "Modrinth"
-		url = "https://api.modrinth.com/maven"
-		content {
-			includeGroup "maven.modrinth"
-		}
-	}
-	maven {
-		name "jitpack"
-		url "https://jitpack.io"
-	}
-	maven {
-		name = 'Ladysnake Mods'
-		url = 'https://ladysnake.jfrog.io/artifactory/mods'
-	}
-	maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
-}
-
-dependencies {
-	modImplementation 'software.bernie.geckolib:geckolib-fabric-1.19:3.1.5'
-
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-	modImplementation 'software.bernie.geckolib:geckolib-fabric-1.19:3.1.5'
-
-	modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-base:${project.cca_version}"
-	modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:${project.cca_version}"
-	include "dev.onyxstudios.cardinal-components-api:cardinal-components-base:${project.cca_version}"
-	include "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:${project.cca_version}"
-
-	implementation "com.github.LlamaLad7:MixinExtras:${mixin_extras_version}"
-	annotationProcessor "com.github.LlamaLad7:MixinExtras:${mixin_extras_version}"
-	include "com.github.LlamaLad7:MixinExtras:${mixin_extras_version}"
-
-	modCompileOnly "maven.modrinth:sodium:${sodium_version}"
-	modRuntimeOnly "maven.modrinth:sodium:${sodium_version}"
-	implementation "org.joml:joml:1.10.4"
-}
-
-processResources {
-	inputs.property "version", project.version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": project.version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	// Minecraft 1.18 (1.18-pre2) upwards uses Java 17.
-	it.options.release = 17
-}
-
+base { archivesName = 'angling-forge-1.20.1' }
 java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	withSourcesJar()
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    withSourcesJar()
 }
-
+sourceSets {
+    gametest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+loom {
+    silentMojangMappingsLicense()
+    mods {
+        angling { sourceSet sourceSets.main }
+    }
+    accessWidenerPath = file('src/main/resources/angling.accesswidener')
+    forge {
+        convertAccessWideners = true
+        extraAccessWideners.add('angling.accesswidener')
+        mixinConfig 'angling.mixins.json'
+    }
+    runs {
+        client { client(); runDir 'run/client' }
+        server { server(); runDir 'run/server'; programArg 'nogui' }
+        gameTestServer {
+            environment 'gametestserver'
+            forgeTemplate 'gameTestServer'
+            source sourceSets.gametest
+            runDir 'run/gametest'
+            property 'forge.enabledGameTestNamespaces', 'angling'
+            mods {
+                angling {
+                    sourceSet sourceSets.main
+                    sourceSet sourceSets.gametest
+                }
+            }
+        }
+    }
+}
+repositories {
+    maven { url 'https://maven.minecraftforge.net/' }
+    maven { url 'https://maven.fabricmc.net/' }
+    maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
+    maven { url 'https://api.modrinth.com/maven' }
+    mavenCentral()
+}
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
+    forge "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    modImplementation 'maven.modrinth:geckolib:4.4.9-forge'
+    // Loom strips GeckoLib's nested development dependency when remapping it.
+    // Players receive this library inside the normal Forge GeckoLib jar.
+    implementation 'com.eliotlash.mclib:mclib:20'
+    forgeRuntimeLibrary 'com.eliotlash.mclib:mclib:20'
+}
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/mods.toml') { expand version: project.version }
+}
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+    options.compilerArgs += ['-Xmaxerrs', '1000']
+}
 jar {
-	from("LICENSE") {
-		rename { "${it}_${project.archivesBaseName}"}
-	}
+    from('LICENSE')
+    manifest { attributes('MixinConfigs': 'angling.mixins.json') }
 }
-
-// configure the maven publication
-publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			from components.java
-		}
-	}
-
-	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-	repositories {
-		// Add repositories to publish to here.
-		// Notice: This block does NOT have the same function as the block in the top level.
-		// The repositories here will be used for publishing your artifact, not for
-		// retrieving dependencies.
-	}
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
 }

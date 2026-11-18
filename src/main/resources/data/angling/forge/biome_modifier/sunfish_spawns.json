@@ -1,0 +1,10 @@
+{
+  "type": "forge:add_spawns",
+  "biomes": "#angling:sunfish_spawn_in",
+  "spawners": {
+    "type": "angling:sunfish",
+    "weight": 5,
+    "minCount": 2,
+    "maxCount": 5
+  }
+}

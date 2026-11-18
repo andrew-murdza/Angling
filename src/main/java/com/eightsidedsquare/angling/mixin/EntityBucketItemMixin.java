@@ -27,20 +27,21 @@ import java.util.List;
 @Mixin(EntityBucketItem.class)
 public abstract class EntityBucketItemMixin {
 
-    @Shadow @Final
-    public EntityType<?> entityType;
+    @Shadow(remap = false)
+    protected abstract EntityType<?> getFishType();
 
     @Inject(method = "appendTooltip", at = @At("HEAD"))
     public void appendTooltip(ItemStack stack, World world, List<Text> tooltip, TooltipContext context, CallbackInfo ci) {
+        EntityType<?> entityType = getFishType();
         NbtCompound nbt = stack.getNbt();
         Formatting[] formatting = new Formatting[]{Formatting.ITALIC, Formatting.GRAY};
         if(nbt != null) {
-            if (entityType.equals(AnglingEntities.SUNFISH)) {
+            if (entityType.equals(AnglingEntities.SUNFISH.get())) {
                 if (nbt.contains("BucketVariantTag", NbtElement.STRING_TYPE)) {
                     SunfishVariant variant = SunfishVariant.fromId(nbt.getString("BucketVariantTag"));
                     tooltip.add(Text.translatable(variant.getTranslationKey()).formatted(formatting));
                 }
-            }else if(entityType.equals(AnglingEntities.SEA_SLUG)) {
+            }else if(entityType.equals(AnglingEntities.SEA_SLUG.get())) {
                 if (nbt.contains("Pattern", NbtElement.STRING_TYPE)) {
                     MutableText text = Text.translatable(SeaSlugColor.fromId(nbt.getString("BaseColor")).getTranslationKey());
                     if (!SeaSlugPattern.fromId(nbt.getString("Pattern")).equals(SeaSlugPattern.NONE)) {
@@ -52,7 +53,7 @@ public abstract class EntityBucketItemMixin {
                     if (nbt.getBoolean("Bioluminescent"))
                         tooltip.add(Text.translatable("item.angling.sea_slug_bucket.bioluminescent").formatted(formatting));
                 }
-            }else if(entityType.equals(AnglingEntities.CRAB)) {
+            }else if(entityType.equals(AnglingEntities.CRAB.get())) {
                 if(nbt.contains("Variant", NbtElement.STRING_TYPE)) {
                     CrabVariant variant = CrabVariant.fromId(nbt.getString("Variant"));
                     tooltip.add(Text.translatable(variant.getTranslationKey()).formatted(formatting));

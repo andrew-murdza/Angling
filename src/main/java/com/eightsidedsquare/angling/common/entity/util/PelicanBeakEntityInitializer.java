@@ -12,7 +12,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registries;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,7 +31,7 @@ public abstract class PelicanBeakEntityInitializer {
     };
 
     public static void init() {
-        registerInitializer(AnglingEntities.DONGFISH, new PelicanBeakEntityInitializer() {
+        registerInitializer(AnglingEntities.DONGFISH.get(), new PelicanBeakEntityInitializer() {
             @Override
             public NbtCompound initialize(NbtCompound nbt, Random random, World world) {
                 nbt.putBoolean("HasHorngus", true);
@@ -50,7 +50,7 @@ public abstract class PelicanBeakEntityInitializer {
             public NbtCompound initialize(NbtCompound nbt, Random random, World world) {
                 int variant = random.nextInt(5) == 0 ?
                         (random.nextInt(2) | random.nextInt(6) << 8 | random.nextInt(15) << 16 | random.nextInt(15) << 24)
-                        : Util.getRandom(TropicalFishEntity.COMMON_VARIANTS, random);
+                        : Util.getRandom(TropicalFishEntity.COMMON_VARIANTS, random).getId();
                 nbt.putInt("Variant", variant);
                 return nbt;
             }
@@ -65,7 +65,7 @@ public abstract class PelicanBeakEntityInitializer {
         registerInitializer(EntityType.FROG, new PelicanBeakEntityInitializer() {
             @Override
             public NbtCompound initialize(NbtCompound nbt, Random random, World world) {
-                Identifier variant = Registry.FROG_VARIANT.getId(Util.getRandom(Registry.FROG_VARIANT.stream().toList(), random));
+                Identifier variant = Registries.FROG_VARIANT.getId(Util.getRandom(Registries.FROG_VARIANT.stream().toList(), random));
                 if(variant != null)
                     nbt.putString("variant", variant.toString());
                 return nbt;
@@ -78,7 +78,7 @@ public abstract class PelicanBeakEntityInitializer {
                 return nbt;
             }
         });
-        registerInitializer(AnglingEntities.SUNFISH, new PelicanBeakEntityInitializer() {
+        registerInitializer(AnglingEntities.SUNFISH.get(), new PelicanBeakEntityInitializer() {
             @Override
             public NbtCompound initialize(NbtCompound nbt, Random random, World world) {
                 Identifier variant = SunfishVariant.REGISTRY.getId(
@@ -89,13 +89,13 @@ public abstract class PelicanBeakEntityInitializer {
                 return nbt;
             }
         });
-        registerInitializer(AnglingEntities.FRY, new PelicanBeakEntityInitializer() {
+        registerInitializer(AnglingEntities.FRY.get(), new PelicanBeakEntityInitializer() {
             @Override
             public NbtCompound initialize(NbtCompound nbt, Random random, World world) {
                 EntityType<?> growUpTo = AnglingUtil.getRandomTagValue(world, AnglingEntityTypeTags.SPAWNING_FISH, random);
-                nbt.putString("GrowUpTo", Registry.ENTITY_TYPE.getId(growUpTo).toString());
+                nbt.putString("GrowUpTo", Registries.ENTITY_TYPE.getId(growUpTo).toString());
                 NbtCompound variant = new NbtCompound();
-                if(!growUpTo.equals(AnglingEntities.FRY))
+                if(!growUpTo.equals(AnglingEntities.FRY.get()))
                     getInitializer(growUpTo).initialize(variant, random, world);
                 nbt.put("Variant", variant);
                 nbt.putInt("Age", -12000);
@@ -106,7 +106,7 @@ public abstract class PelicanBeakEntityInitializer {
                 return nbt;
             }
         });
-        registerInitializer(AnglingEntities.SEA_SLUG, new PelicanBeakEntityInitializer() {
+        registerInitializer(AnglingEntities.SEA_SLUG.get(), new PelicanBeakEntityInitializer() {
             @Override
             public NbtCompound initialize(NbtCompound nbt, Random random, World world) {
                 nbt.putString("Pattern", AnglingUtil.getRandomTagValue(world, SeaSlugPattern.Tag.NATURAL_PATTERNS, random).getId().toString());
@@ -116,7 +116,7 @@ public abstract class PelicanBeakEntityInitializer {
                 return nbt;
             }
         });
-        registerInitializer(AnglingEntities.CRAB, new PelicanBeakEntityInitializer() {
+        registerInitializer(AnglingEntities.CRAB.get(), new PelicanBeakEntityInitializer() {
             @Override
             public NbtCompound initialize(NbtCompound nbt, Random random, World world) {
                 nbt.putString("Variant", AnglingUtil.getRandomTagValue(world, CrabVariant.Tag.NATURAL_VARIANTS, random).getId().toString());

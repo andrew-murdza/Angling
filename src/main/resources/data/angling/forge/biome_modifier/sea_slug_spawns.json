@@ -1,0 +1,10 @@
+{
+  "type": "forge:add_spawns",
+  "biomes": "#angling:sea_slug_spawn_in",
+  "spawners": {
+    "type": "angling:sea_slug",
+    "weight": 4,
+    "minCount": 1,
+    "maxCount": 3
+  }
+}

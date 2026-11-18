@@ -10,17 +10,18 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib3.core.IAnimatable;
-import software.bernie.geckolib3.core.PlayState;
-import software.bernie.geckolib3.core.builder.AnimationBuilder;
-import software.bernie.geckolib3.core.controller.AnimationController;
-import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
-import software.bernie.geckolib3.core.manager.AnimationData;
-import software.bernie.geckolib3.core.manager.AnimationFactory;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-public class CatfishEntity extends FishEntity implements IAnimatable {
+public class CatfishEntity extends FishEntity implements GeoEntity {
 
-    AnimationFactory factory = new AnimationFactory(this);
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
     public CatfishEntity(EntityType<? extends FishEntity> entityType, World world) {
         super(entityType, world);
@@ -49,25 +50,25 @@ public class CatfishEntity extends FishEntity implements IAnimatable {
 
     @Override
     public ItemStack getBucketItem() {
-        return new ItemStack(AnglingItems.CATFISH_BUCKET);
+        return new ItemStack(AnglingItems.CATFISH_BUCKET.get());
     }
 
     @Override
-    public void registerControllers(AnimationData animationData) {
-        animationData.addAnimationController(new AnimationController<>(this, "controller", 2, this::controller));
+    public void registerControllers(AnimatableManager.ControllerRegistrar animationData) {
+        animationData.add(new AnimationController<>(this, "controller", 2, this::controller));
     }
 
-    private PlayState controller(AnimationEvent<CatfishEntity> event) {
+    private PlayState controller(AnimationState<CatfishEntity> event) {
         if(!touchingWater) {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.catfish.flop", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.catfish.flop"));
         }else {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.catfish.idle", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.catfish.idle"));
         }
         return PlayState.CONTINUE;
     }
 
     @Override
-    public AnimationFactory getFactory() {
-        return factory;
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 }

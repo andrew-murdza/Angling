@@ -1,0 +1,11 @@
+{
+  "type": "angling:waterloggable_patch",
+  "config": {
+    "to_place": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "angling:oysters"
+      }
+    }
+  }
+}

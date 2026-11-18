@@ -35,19 +35,20 @@ import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib3.core.IAnimatable;
-import software.bernie.geckolib3.core.PlayState;
-import software.bernie.geckolib3.core.builder.AnimationBuilder;
-import software.bernie.geckolib3.core.controller.AnimationController;
-import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
-import software.bernie.geckolib3.core.manager.AnimationData;
-import software.bernie.geckolib3.core.manager.AnimationFactory;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-public class SeaSlugEntity extends WaterCreatureEntity implements IAnimatable, Bucketable {
+public class SeaSlugEntity extends WaterCreatureEntity implements GeoEntity, Bucketable {
 
-    private static final TrackedData<SeaSlugPattern> PATTERN = DataTracker.registerData(SeaSlugEntity.class, SeaSlugPattern.TRACKED_DATA_HANDLER);
-    private static final TrackedData<SeaSlugColor> BASE_COLOR = DataTracker.registerData(SeaSlugEntity.class, SeaSlugColor.TRACKED_DATA_HANDLER);
-    private static final TrackedData<SeaSlugColor> PATTERN_COLOR = DataTracker.registerData(SeaSlugEntity.class, SeaSlugColor.TRACKED_DATA_HANDLER);
+    private static final TrackedData<String> PATTERN = DataTracker.registerData(SeaSlugEntity.class, TrackedDataHandlerRegistry.STRING);
+    private static final TrackedData<String> BASE_COLOR = DataTracker.registerData(SeaSlugEntity.class, TrackedDataHandlerRegistry.STRING);
+    private static final TrackedData<String> PATTERN_COLOR = DataTracker.registerData(SeaSlugEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedData<Boolean> BIOLUMINESCENT = DataTracker.registerData(SeaSlugEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> FROM_BUCKET = DataTracker.registerData(SeaSlugEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> HAS_EGGS = DataTracker.registerData(SeaSlugEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
@@ -55,7 +56,7 @@ public class SeaSlugEntity extends WaterCreatureEntity implements IAnimatable, B
     private static final TrackedData<Integer> LOVE_TICKS = DataTracker.registerData(SeaSlugEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final TrackedData<Integer> LOVE_COOLDOWN = DataTracker.registerData(SeaSlugEntity.class, TrackedDataHandlerRegistry.INTEGER);
 
-    AnimationFactory factory = new AnimationFactory(this);
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
     public SeaSlugEntity(EntityType<? extends WaterCreatureEntity> entityType, World world) {
         super(entityType, world);
@@ -126,9 +127,9 @@ public class SeaSlugEntity extends WaterCreatureEntity implements IAnimatable, B
     @Override
     protected void initDataTracker() {
         super.initDataTracker();
-        dataTracker.startTracking(PATTERN, SeaSlugPattern.NONE);
-        dataTracker.startTracking(BASE_COLOR, SeaSlugColor.IVORY);
-        dataTracker.startTracking(PATTERN_COLOR, SeaSlugColor.IVORY);
+        dataTracker.startTracking(PATTERN, "angling:none");
+        dataTracker.startTracking(BASE_COLOR, "angling:ivory");
+        dataTracker.startTracking(PATTERN_COLOR, "angling:ivory");
         dataTracker.startTracking(BIOLUMINESCENT, true);
         dataTracker.startTracking(FROM_BUCKET, false);
         dataTracker.startTracking(HAS_EGGS, false);
@@ -138,27 +139,27 @@ public class SeaSlugEntity extends WaterCreatureEntity implements IAnimatable, B
     }
 
     public void setBaseColor(SeaSlugColor color) {
-        dataTracker.set(BASE_COLOR, color);
+        dataTracker.set(BASE_COLOR, color.getId().toString());
     }
 
     public SeaSlugColor getBaseColor() {
-        return dataTracker.get(BASE_COLOR);
+        return SeaSlugColor.fromId(dataTracker.get(BASE_COLOR));
     }
 
     public void setPatternColor(SeaSlugColor color) {
-        dataTracker.set(PATTERN_COLOR, color);
+        dataTracker.set(PATTERN_COLOR, color.getId().toString());
     }
 
     public SeaSlugColor getPatternColor() {
-        return dataTracker.get(PATTERN_COLOR);
+        return SeaSlugColor.fromId(dataTracker.get(PATTERN_COLOR));
     }
 
     public void setPattern(SeaSlugPattern pattern) {
-        dataTracker.set(PATTERN, pattern);
+        dataTracker.set(PATTERN, pattern.getId().toString());
     }
 
     public SeaSlugPattern getPattern() {
-        return dataTracker.get(PATTERN);
+        return SeaSlugPattern.fromId(dataTracker.get(PATTERN));
     }
 
     public void setBioluminescent(boolean bioluminescent) {
@@ -244,40 +245,41 @@ public class SeaSlugEntity extends WaterCreatureEntity implements IAnimatable, B
     }
 
     @Override
-    public void registerControllers(AnimationData animationData) {
-        animationData.addAnimationController(new AnimationController<>(this, "ambient_controller", 0, this::ambientController));
-        animationData.addAnimationController(new AnimationController<>(this, "controller", 0, this::controller));
+    public void registerControllers(AnimatableManager.ControllerRegistrar animationData) {
+        animationData.add(new AnimationController<>(this, "ambient_controller", 0, this::ambientController));
+        animationData.add(new AnimationController<>(this, "controller", 0, this::controller));
     }
 
-    private PlayState ambientController(AnimationEvent<SeaSlugEntity> event) {
-        event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.sea_slug.ambient", true));
+    private PlayState ambientController(AnimationState<SeaSlugEntity> event) {
+        event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.sea_slug.ambient"));
         return PlayState.CONTINUE;
     }
 
-    private PlayState controller(AnimationEvent<SeaSlugEntity> event) {
+    private PlayState controller(AnimationState<SeaSlugEntity> event) {
         if(new Vec3d(getVelocity().getX(), 0, getVelocity().getZ()).length() > 0.005d) {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.sea_slug.moving", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.sea_slug.moving"));
             return PlayState.CONTINUE;
         }
-        event.getController().clearAnimationCache();
+        event.getController().forceAnimationReset();
         return PlayState.STOP;
     }
 
     protected ActionResult interactMob(PlayerEntity player, Hand hand) {
         ItemStack stack = player.getStackInHand(hand);
-        if(stack.isOf(AnglingBlocks.ALGAE.asItem()) && !isInLove() && !hasLoveCooldown() && !hasEggs()) {
+        if(stack.isOf(AnglingBlocks.ALGAE.get().asItem()) && !isInLove() && !hasLoveCooldown() && !hasEggs()) {
+            if (getWorld().isClient) return ActionResult.SUCCESS;
             setLoveTicks(600);
             createHeartParticles();
             if(!player.getAbilities().creativeMode)
                 stack.decrement(1);
-            return ActionResult.success(world.isClient);
+            return ActionResult.success(getWorld().isClient);
         }
         return Bucketable.tryBucket(player, hand, this).orElse(super.interactMob(player, hand));
     }
 
     public void createHeartParticles() {
-        if(!world.isClient) {
-            ((ServerWorld) world).spawnParticles(ParticleTypes.HEART, getParticleX(1), getRandomBodyY() + 0.5d, getParticleZ(1), 7, 0.25d, 0.25d, 0.25d, 0);
+        if(!getWorld().isClient) {
+            ((ServerWorld) getWorld()).spawnParticles(ParticleTypes.HEART, getParticleX(1), getRandomBodyY() + 0.5d, getParticleZ(1), 7, 0.25d, 0.25d, 0.25d, 0);
         }
     }
 
@@ -293,8 +295,8 @@ public class SeaSlugEntity extends WaterCreatureEntity implements IAnimatable, B
     }
 
     @Override
-    public AnimationFactory getFactory() {
-        return factory;
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 
     @Override
@@ -328,7 +330,7 @@ public class SeaSlugEntity extends WaterCreatureEntity implements IAnimatable, B
 
     @Override
     public ItemStack getBucketItem() {
-        return new ItemStack(AnglingItems.SEA_SLUG_BUCKET);
+        return new ItemStack(AnglingItems.SEA_SLUG_BUCKET.get());
     }
 
     @Override

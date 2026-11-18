@@ -6,6 +6,7 @@ import com.eightsidedsquare.angling.common.block.RoeBlock;
 import com.eightsidedsquare.angling.common.entity.RoeBlockEntity;
 import com.eightsidedsquare.angling.core.AnglingBlocks;
 import com.eightsidedsquare.angling.core.AnglingUtil;
+import com.eightsidedsquare.angling.core.tags.AnglingEntityTypeTags;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.ai.goal.MoveToTargetPosGoal;
@@ -31,7 +32,7 @@ public class FishLayRoeGoal extends MoveToTargetPosGoal {
     public FishLayRoeGoal(WaterCreatureEntity entity) {
         super(entity, 1.25d, 6, 6);
         this.entity = (FishEntity) entity;
-        this.world = entity.world;
+        this.world = entity.getWorld();
         this.setControls(EnumSet.of(Control.MOVE));
     }
 
@@ -53,7 +54,7 @@ public class FishLayRoeGoal extends MoveToTargetPosGoal {
 
         if(tryingTime % 5 == 0 && new Vec3d(targetPos.getX() + 0.5d, targetPos.getY() + 0.5d, targetPos.getZ() + 0.5d).distanceTo(entity.getPos()) < 1d && noAlgaeNearby(world, targetPos)) {
             component.setCarryingRoe(false);
-            world.setBlockState(targetPos.up(), AnglingBlocks.ROE.getDefaultState().with(Properties.WATERLOGGED, true), Block.NOTIFY_ALL);
+            world.setBlockState(targetPos.up(), AnglingBlocks.ROE.get().getDefaultState().with(Properties.WATERLOGGED, true), Block.NOTIFY_ALL);
             if(world.getBlockEntity(targetPos.up()) instanceof RoeBlockEntity roeBlockEntity && component.getMateData() != null){
                 roeBlockEntity.setParentsData(AnglingUtil.entityToNbt(entity, true), component.getMateData().copy());
                 roeBlockEntity.setEntityType(entity.getType());
@@ -69,7 +70,8 @@ public class FishLayRoeGoal extends MoveToTargetPosGoal {
     @Override
     public boolean canStart() {
         FishSpawningComponent component = AnglingEntityComponents.FISH_SPAWNING.get(entity);
-        return super.canStart() && component.isCarryingRoe() && component.getMateData() != null;
+        return entity.getType().isIn(AnglingEntityTypeTags.SPAWNING_FISH)
+                && component.isCarryingRoe() && component.getMateData() != null && super.canStart();
     }
 
     @Override
@@ -81,7 +83,7 @@ public class FishLayRoeGoal extends MoveToTargetPosGoal {
         int r = 3;
         Iterable<BlockPos> iterable = BlockPos.iterate(pos.add(-r, -r, -r), pos.add(r, r, r));
         for(BlockPos blockPos : iterable) {
-            if(world.getBlockState(blockPos).isOf(AnglingBlocks.ALGAE)) {
+            if(world.getBlockState(blockPos).isOf(AnglingBlocks.ALGAE.get())) {
                 return false;
             }
         }

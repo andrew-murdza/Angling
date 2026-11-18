@@ -7,7 +7,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.FacingBlock;
 import net.minecraft.state.property.Properties;
-import net.minecraft.tag.BlockTags;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
@@ -28,12 +28,12 @@ public abstract class CoralFeatureMixin {
                     .filter(d -> random.nextFloat() < 0.0125d && canPlace(pos.offset(d), world))
                     .forEach(d -> {
                         world.setBlockState(pos.offset(d),
-                                AnglingBlocks.STARFISH.getDefaultState().with(FacingBlock.FACING, d), Block.NOTIFY_LISTENERS);
+                                AnglingBlocks.STARFISH.get().getDefaultState().with(FacingBlock.FACING, d), Block.NOTIFY_LISTENERS);
                         StarfishBlock.randomize(world, pos.offset(d), random);
                     });
             if(random.nextFloat() < 0.025f && canPlace(pos.up(), world)) {
                 world.setBlockState(pos.up(),
-                        (random.nextBoolean() ? AnglingBlocks.URCHIN : AnglingBlocks.ANEMONE)
+                        (random.nextBoolean() ? AnglingBlocks.URCHIN.get() : AnglingBlocks.ANEMONE.get())
                         .getDefaultState().with(Properties.WATERLOGGED, true), Block.NOTIFY_LISTENERS);
             }
         }

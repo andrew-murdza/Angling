@@ -29,7 +29,7 @@ public abstract class FishVariantInheritance {
         registerVariantInheritance(EntityType.COD, SIMPLE_INHERITANCE);
         registerVariantInheritance(EntityType.SALMON, SIMPLE_INHERITANCE);
         registerVariantInheritance(EntityType.PUFFERFISH, SIMPLE_INHERITANCE);
-        registerVariantInheritance(AnglingEntities.DONGFISH, SIMPLE_INHERITANCE);
+        registerVariantInheritance(AnglingEntities.DONGFISH.get(), SIMPLE_INHERITANCE);
         registerVariantInheritance(EntityType.TROPICAL_FISH, new FishVariantInheritance() {
             @Override
             protected NbtCompound getChild(NbtCompound parent, NbtCompound mate, NbtCompound child, World world) {
@@ -50,7 +50,7 @@ public abstract class FishVariantInheritance {
                 return ((((random.nextBoolean() ? parentVariant : mateVariant) >> shift) & size) << shift);
             }
         });
-        registerVariantInheritance(AnglingEntities.SUNFISH, new FishVariantInheritance() {
+        registerVariantInheritance(AnglingEntities.SUNFISH.get(), new FishVariantInheritance() {
             @Override
             protected NbtCompound getChild(NbtCompound parent, NbtCompound mate, NbtCompound child, World world) {
                 SunfishVariant parentVariant = SunfishVariant.fromId(Identifier.tryParse(parent.getString("Variant")));

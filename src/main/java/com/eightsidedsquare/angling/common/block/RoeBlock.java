@@ -44,7 +44,7 @@ public class RoeBlock extends BlockWithEntity implements Waterloggable {
 
     @Override
     public BlockRenderType getRenderType(BlockState state) {
-        return AnglingUtil.runningSodium() ? BlockRenderType.INVISIBLE : BlockRenderType.MODEL;
+        return BlockRenderType.MODEL;
     }
 
     @Override
@@ -72,7 +72,7 @@ public class RoeBlock extends BlockWithEntity implements Waterloggable {
 
     public BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos) {
         if (state.get(WATERLOGGED)) {
-            world.createAndScheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
+            world.scheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
         }
         if(!canPlaceAt(state, world, pos)) {
             return Blocks.AIR.getDefaultState();
@@ -96,21 +96,19 @@ public class RoeBlock extends BlockWithEntity implements Waterloggable {
     @Override
     public void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify) {
         if(state.get(WATERLOGGED)) {
-            world.createAndScheduleBlockTick(pos, this, getHatchTime(world.getRandom()));
+            world.scheduleBlockTick(pos, this, getHatchTime(world.getRandom()));
         }
     }
 
     @Override
     public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack itemStack) {
-        if(world.isClient) {
-            world.getBlockEntity(pos, AnglingEntities.ROE).ifPresent(entity -> entity.readFrom(itemStack));
-        }
+        world.getBlockEntity(pos, AnglingEntities.ROE.get()).ifPresent(entity -> entity.readFrom(itemStack));
     }
 
     @Override
     public void scheduledTick(BlockState state, ServerWorld world, BlockPos pos, Random random) {
         if(state.get(WATERLOGGED)) {
-            world.getBlockEntity(pos, AnglingEntities.ROE).ifPresent(entity -> entity.hatch(world));
+            world.getBlockEntity(pos, AnglingEntities.ROE.get()).ifPresent(entity -> entity.hatch(world));
         }
     }
 
@@ -118,12 +116,12 @@ public class RoeBlock extends BlockWithEntity implements Waterloggable {
         SpawnEggItem eggItem = SpawnEggItem.forEntity(entity.getType());
         FishSpawningComponent component = AnglingEntityComponents.FISH_SPAWNING.get(entity);
         if(entity instanceof TropicalFishEntity tropicalFishEntity) {
-            int parentColor = TropicalFishEntity.getBaseDyeColor(tropicalFishEntity.getVariant()).getSignColor();
+            int parentColor = tropicalFishEntity.getBaseColorComponents().getSignColor();
             return new Pair<>(parentColor,
                     component.getMateData() != null ? TropicalFishEntity.getBaseDyeColor(component.getMateData().getInt("Variant")).getSignColor() : parentColor);
         }
         if(eggItem != null) {
-            return new Pair<>(eggItem.getColor(0), eggItem.getColor(0));
+            return new Pair<>(eggItem.getColor(0), eggItem.getColor(1));
         }
         return new Pair<>(0xffffff, 0xffffff);
     }

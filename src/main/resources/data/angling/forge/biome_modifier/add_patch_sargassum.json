@@ -1,0 +1,6 @@
+{
+  "type": "forge:add_features",
+  "biomes": "#angling:sargassum_biomes",
+  "features": "angling:patch_sargassum",
+  "step": "vegetal_decoration"
+}

@@ -1,0 +1,10 @@
+{
+  "type": "forge:add_spawns",
+  "biomes": "#angling:seahorse_spawn_in",
+  "spawners": {
+    "type": "angling:seahorse",
+    "weight": 4,
+    "minCount": 3,
+    "maxCount": 8
+  }
+}

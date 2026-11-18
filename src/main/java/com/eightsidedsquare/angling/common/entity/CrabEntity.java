@@ -31,26 +31,27 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.util.registry.RegistryEntry;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.world.LocalDifficulty;
 import net.minecraft.world.ServerWorldAccess;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 import net.minecraft.world.biome.Biome;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib3.core.IAnimatable;
-import software.bernie.geckolib3.core.PlayState;
-import software.bernie.geckolib3.core.builder.AnimationBuilder;
-import software.bernie.geckolib3.core.controller.AnimationController;
-import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
-import software.bernie.geckolib3.core.manager.AnimationData;
-import software.bernie.geckolib3.core.manager.AnimationFactory;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-public class CrabEntity extends AnimalEntity implements IAnimatable, Bucketable {
+public class CrabEntity extends AnimalEntity implements GeoEntity, Bucketable {
 
-    AnimationFactory factory = new AnimationFactory(this);
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
-    private static final TrackedData<CrabVariant> VARIANT = DataTracker.registerData(CrabEntity.class, CrabVariant.TRACKED_DATA_HANDLER);
+    private static final TrackedData<String> VARIANT = DataTracker.registerData(CrabEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedData<Boolean> FROM_BUCKET = DataTracker.registerData(CrabEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     public CrabEntity(EntityType<? extends AnimalEntity> entityType, World world) {
@@ -76,7 +77,7 @@ public class CrabEntity extends AnimalEntity implements IAnimatable, Bucketable 
         this.goalSelector.add(0, new EscapeDangerGoal(this, 1.25d));
         this.goalSelector.add(1, new GoToWaterGoal(this, 1, 12));
         this.goalSelector.add(2, new AnimalMateGoal(this, 1));
-        this.goalSelector.add(3, new TemptGoal(this, 1.2D, Ingredient.ofItems(AnglingItems.WORM), false));
+        this.goalSelector.add(3, new TemptGoal(this, 1.2D, Ingredient.ofItems(AnglingItems.WORM.get()), false));
         this.goalSelector.add(4, new FollowParentGoal(this, 1.1d));
         this.goalSelector.add(5, new WanderAroundFarGoal(this, 1));
         this.goalSelector.add(6, new LookAtEntityGoal(this, PlayerEntity.class, 6));
@@ -99,7 +100,7 @@ public class CrabEntity extends AnimalEntity implements IAnimatable, Bucketable 
     @Override
     public PassiveEntity createChild(ServerWorld world, PassiveEntity entity) {
         CrabEntity child;
-        if((child = AnglingEntities.CRAB.create(world)) != null && entity instanceof CrabEntity mate) {
+        if((child = AnglingEntities.CRAB.get().create(world)) != null && entity instanceof CrabEntity mate) {
             child.setVariant((random.nextBoolean() ? this : mate).getVariant());
             child.setPersistent();
             return child;
@@ -124,16 +125,16 @@ public class CrabEntity extends AnimalEntity implements IAnimatable, Bucketable 
     @Override
     protected void initDataTracker() {
         super.initDataTracker();
-        dataTracker.startTracking(VARIANT, CrabVariant.DUNGENESS);
+        dataTracker.startTracking(VARIANT, "angling:dungeness");
         dataTracker.startTracking(FROM_BUCKET, false);
     }
 
     public CrabVariant getVariant() {
-        return dataTracker.get(VARIANT);
+        return CrabVariant.fromId(dataTracker.get(VARIANT));
     }
 
     public void setVariant(CrabVariant variant) {
-        dataTracker.set(VARIANT, variant);
+        dataTracker.set(VARIANT, variant.getId().toString());
     }
 
     @Override
@@ -151,32 +152,32 @@ public class CrabEntity extends AnimalEntity implements IAnimatable, Bucketable 
     }
 
     @Override
-    public void registerControllers(AnimationData animationData) {
-        animationData.addAnimationController(new AnimationController<>(this, "rotation_controller", 6, this::rotationController));
-        animationData.addAnimationController(new AnimationController<>(this, "controller", 4, this::controller));
+    public void registerControllers(AnimatableManager.ControllerRegistrar animationData) {
+        animationData.add(new AnimationController<>(this, "rotation_controller", 6, this::rotationController));
+        animationData.add(new AnimationController<>(this, "controller", 4, this::controller));
     }
 
-    private PlayState rotationController(AnimationEvent<CrabEntity> event) {
+    private PlayState rotationController(AnimationState<CrabEntity> event) {
         if(event.isMoving()) {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.crab.rotated", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.crab.rotated"));
             return PlayState.CONTINUE;
         }
-        event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.crab.forwards", true));
+        event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.crab.forwards"));
         return PlayState.CONTINUE;
     }
 
-    private PlayState controller(AnimationEvent<CrabEntity> event) {
+    private PlayState controller(AnimationState<CrabEntity> event) {
         if(event.isMoving()) {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.crab.moving", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.crab.moving"));
             return PlayState.CONTINUE;
         }
-        event.getController().clearAnimationCache();
+        event.getController().forceAnimationReset();
         return PlayState.STOP;
     }
 
     @Override
     public boolean isBreedingItem(ItemStack stack) {
-        return stack.isOf(AnglingItems.WORM);
+        return stack.isOf(AnglingItems.WORM.get());
     }
 
     public ActionResult interactMob(PlayerEntity player, Hand hand) {
@@ -184,8 +185,8 @@ public class CrabEntity extends AnimalEntity implements IAnimatable, Bucketable 
     }
 
     @Override
-    public AnimationFactory getFactory() {
-        return factory;
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 
     public static DefaultAttributeContainer.Builder createAttributes() {
@@ -245,7 +246,7 @@ public class CrabEntity extends AnimalEntity implements IAnimatable, Bucketable 
 
     @Override
     public ItemStack getBucketItem() {
-        return new ItemStack(AnglingItems.CRAB_BUCKET);
+        return new ItemStack(AnglingItems.CRAB_BUCKET.get());
     }
 
     @Override

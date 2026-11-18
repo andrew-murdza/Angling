@@ -1,12 +1,8 @@
 package com.eightsidedsquare.angling.common.entity.util;
 
-import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
-import net.fabricmc.fabric.api.event.registry.RegistryAttribute;
-import net.minecraft.entity.data.TrackedDataHandler;
-import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.tag.TagKey;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
+import net.minecraftforge.eventbus.api.IEventBus;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -38,11 +34,9 @@ public record SeaSlugColor(int color) {
     public static final SeaSlugColor ORCHID = create("orchid", 0xDA70D6D);
     public static final SeaSlugColor FOLLY = create("folly", 0xFF004A);
 
-    public static final Registry<SeaSlugColor> REGISTRY = FabricRegistryBuilder
-            .createDefaulted(SeaSlugColor.class, new Identifier(MOD_ID, "sea_slug_color"), new Identifier(MOD_ID, "ivory"))
-            .attribute(RegistryAttribute.SYNCED).buildAndRegister();
+    public static final AnglingVariantRegistry<SeaSlugColor> REGISTRY =
+            new AnglingVariantRegistry<>("sea_slug_color", "ivory", IVORY);
 
-    public static final TrackedDataHandler<SeaSlugColor> TRACKED_DATA_HANDLER = TrackedDataHandler.of(REGISTRY);
 
     public String getTranslationKey() {
         return "sea_slug_color." + this.getId().getNamespace() + "." + this.getId().getPath();
@@ -66,9 +60,8 @@ public record SeaSlugColor(int color) {
         return seaSlugColor;
     }
 
-    public static void init() {
-        TrackedDataHandlerRegistry.register(TRACKED_DATA_HANDLER);
-        COLORS.keySet().forEach(color -> Registry.register(REGISTRY, COLORS.get(color), color));
+    public static void init(IEventBus bus) {
+        REGISTRY.register(bus, COLORS);
     }
 
     public static class Tag {

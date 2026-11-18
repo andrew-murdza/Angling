@@ -5,9 +5,8 @@ import com.eightsidedsquare.angling.common.entity.util.SeaSlugPattern;
 import com.eightsidedsquare.angling.core.AnglingEntities;
 import com.eightsidedsquare.angling.core.AnglingSounds;
 import com.eightsidedsquare.angling.core.AnglingUtil;
-import net.fabricmc.fabric.api.rendering.data.v1.RenderAttachedBlockView;
-import net.fabricmc.fabric.api.rendering.data.v1.RenderAttachmentBlockEntity;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.item.BlockItem;
@@ -19,39 +18,48 @@ import net.minecraft.particle.BlockStateParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.tag.TagKey;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 import org.jetbrains.annotations.Nullable;
 
-public class SeaSlugEggsBlockEntity extends BlockEntity implements RenderAttachmentBlockEntity {
+public class SeaSlugEggsBlockEntity extends BlockEntity {
 
     int color;
     NbtCompound parentData;
     NbtCompound mateData;
 
     public SeaSlugEggsBlockEntity(BlockPos pos, BlockState state) {
-        super(AnglingEntities.SEA_SLUG_EGGS, pos, state);
+        super(AnglingEntities.SEA_SLUG_EGGS.get(), pos, state);
         setColor(SeaSlugColor.IVORY);
         setParentsData(new NbtCompound(), new NbtCompound());
     }
 
     public void setParentsData(NbtCompound parentData, NbtCompound mateData) {
-        this.parentData = parentData;
-        this.mateData = mateData;
+        this.parentData = parentData.copy();
+        this.mateData = mateData.copy();
+        updateData();
     }
 
     public void setColor(int color) {
         this.color = color;
+        updateData();
     }
 
     public void setColor(SeaSlugColor color) {
-        this.color = color.color();
+        setColor(color.color());
+    }
+
+    private void updateData() {
+        markDirty();
+        if (world != null && !world.isClient) {
+            world.updateListeners(pos, getCachedState(), getCachedState(), Block.NOTIFY_LISTENERS);
+        }
     }
 
     public static int getColor(BlockState state, @Nullable BlockRenderView world, BlockPos pos, int tintIndex) {
-        if(world != null && ((RenderAttachedBlockView) world).getBlockEntityRenderAttachment(pos) instanceof SeaSlugEggsBlockEntity entity) {
+        if(world != null && world.getBlockEntity(pos) instanceof SeaSlugEggsBlockEntity entity) {
             return entity.color;
         }
         return 0xffffff;
@@ -95,7 +103,7 @@ public class SeaSlugEggsBlockEntity extends BlockEntity implements RenderAttachm
         int count = random.nextBetween(1, 3);
         if(mateData != null && parentData != null) {
             for (int i = 0; i < count; i++) {
-                SeaSlugEntity entity = AnglingEntities.SEA_SLUG.create(world);
+                SeaSlugEntity entity = AnglingEntities.SEA_SLUG.get().create(world);
                 if (entity != null) {
                     entity.setBaseColor(pickColor(world, random, true));
                     entity.setPatternColor(pickColor(world, random, false));
@@ -104,7 +112,7 @@ public class SeaSlugEggsBlockEntity extends BlockEntity implements RenderAttachm
                     entity.setLoveCooldown(3000);
                     entity.setBodyYaw(random.nextBetween(-180, 180));
                     entity.setHeadYaw(entity.bodyYaw);
-                    entity.setPos(pos.getX() + 0.5d, pos.getY() + 0.1d, pos.getZ() + 0.5d);
+                    entity.setPosition(pos.getX() + 0.5d, pos.getY() + 0.1d, pos.getZ() + 0.5d);
                     entity.setFromBucket(true);
                     world.spawnEntity(entity);
                 }
@@ -141,8 +149,4 @@ public class SeaSlugEggsBlockEntity extends BlockEntity implements RenderAttachm
             setParentsData(nbt.getCompound("ParentData"), nbt.getCompound("MateData"));
     }
 
-    @Override
-    public @Nullable Object getRenderAttachmentData() {
-        return this;
-    }
 }

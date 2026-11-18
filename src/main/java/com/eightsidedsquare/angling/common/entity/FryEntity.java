@@ -25,19 +25,20 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib3.core.IAnimatable;
-import software.bernie.geckolib3.core.PlayState;
-import software.bernie.geckolib3.core.builder.AnimationBuilder;
-import software.bernie.geckolib3.core.controller.AnimationController;
-import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
-import software.bernie.geckolib3.core.manager.AnimationData;
-import software.bernie.geckolib3.core.manager.AnimationFactory;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.Optional;
 
-public class FryEntity extends FishEntity implements IAnimatable {
+public class FryEntity extends FishEntity implements GeoEntity {
 
-    AnimationFactory factory = new AnimationFactory(this);
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private static final TrackedData<Integer> COLOR;
     private static final TrackedData<Integer> AGE;
     private static final TrackedData<NbtCompound> VARIANT;
@@ -66,20 +67,21 @@ public class FryEntity extends FishEntity implements IAnimatable {
     }
 
     public void growUp() {
+        if (getWorld().isClient) return;
         FishSpawningComponent component = AnglingEntityComponents.FISH_SPAWNING.get(this);
         if(component.canGrowUp()) {
             getGrowUpEntity().ifPresent(entityType -> {
-                Entity adult = entityType.create(world);
+                Entity adult = entityType.create(getWorld());
                 if(adult != null) {
-                    adult.setPos(getX(), getY(), getZ());
+                    adult.setPosition(getX(), getY(), getZ());
                     if(adult instanceof MobEntity mob) {
                         mob.setPersistent();
                         NbtCompound nbt = mob.writeNbt(new NbtCompound());
                         getVariant().getKeys().forEach(key -> nbt.put(key, getVariant().get(key)));
                         mob.readNbt(nbt);
-                        world.spawnEntity(mob);
+                        getWorld().spawnEntity(mob);
                     }else {
-                        world.spawnEntity(adult);
+                        getWorld().spawnEntity(adult);
                     }
                     discard();
                 }
@@ -108,6 +110,7 @@ public class FryEntity extends FishEntity implements IAnimatable {
     @Override
     public void baseTick() {
         super.baseTick();
+        if (getWorld().isClient) return;
         if(getAge() < 0) {
             setAge(getAge() + 1);
         }
@@ -155,11 +158,11 @@ public class FryEntity extends FishEntity implements IAnimatable {
     @Override
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
-        setColor(nbt.getInt("Color"));
-        setAge(nbt.getInt("Age"));
+        if (nbt.contains("Color", NbtElement.NUMBER_TYPE)) setColor(nbt.getInt("Color"));
+        if (nbt.contains("Age", NbtElement.NUMBER_TYPE)) setAge(nbt.getInt("Age"));
         if(nbt.contains("Variant", NbtElement.COMPOUND_TYPE))
             setVariant(nbt.getCompound("Variant"));
-        setGrowUpTo(nbt.getString("GrowUpTo"));
+        if (nbt.contains("GrowUpTo", NbtElement.STRING_TYPE)) setGrowUpTo(nbt.getString("GrowUpTo"));
     }
 
     @Override
@@ -176,16 +179,18 @@ public class FryEntity extends FishEntity implements IAnimatable {
         ItemStack stack = player.getStackInHand(hand);
         FishSpawningComponent component = AnglingEntityComponents.FISH_SPAWNING.get(this);
         if(stack.isOf(Items.FERMENTED_SPIDER_EYE) && component.canGrowUp()) {
+            if (getWorld().isClient) return ActionResult.SUCCESS;
             if(!player.getAbilities().creativeMode)
                 stack.decrement(1);
             component.setCanGrowUp(false);
-            return ActionResult.success(world.isClient);
-        }else if(stack.isOf(AnglingItems.WORM) && component.canGrowUp()) {
+            return ActionResult.success(getWorld().isClient);
+        }else if(stack.isOf(AnglingItems.WORM.get()) && component.canGrowUp()) {
+            if (getWorld().isClient) return ActionResult.SUCCESS;
             if(!player.getAbilities().creativeMode)
                 stack.decrement(1);
             component.createGrowUpParticles();
             setAge(getAge() + (int) ((getAge() * -1) * 0.05f));
-            return ActionResult.success(world.isClient);
+            return ActionResult.success(getWorld().isClient);
         }
         return super.interactMob(player, hand);
     }
@@ -214,27 +219,27 @@ public class FryEntity extends FishEntity implements IAnimatable {
 
     @Override
     public ItemStack getBucketItem() {
-        return new ItemStack(AnglingItems.FRY_BUCKET);
+        return new ItemStack(AnglingItems.FRY_BUCKET.get());
     }
 
     @Override
-    public void registerControllers(AnimationData animationData) {
+    public void registerControllers(AnimatableManager.ControllerRegistrar animationData) {
         AnimationController<FryEntity> controller = new AnimationController<>(this, "controller", 2, this::controller);
-        animationData.addAnimationController(controller);
+        animationData.add(controller);
     }
 
-    private PlayState controller(AnimationEvent<FryEntity> event) {
+    private PlayState controller(AnimationState<FryEntity> event) {
         if(!touchingWater) {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.fry.flop", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.fry.flop"));
         }else {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.fry.idle", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.fry.idle"));
         }
         return PlayState.CONTINUE;
     }
 
     @Override
-    public AnimationFactory getFactory() {
-        return factory;
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 
     static {

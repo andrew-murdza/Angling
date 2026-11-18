@@ -2,6 +2,7 @@ package com.eightsidedsquare.angling.mixin;
 
 import com.eightsidedsquare.angling.cca.AnglingEntityComponents;
 import com.eightsidedsquare.angling.cca.FishSpawningComponent;
+import com.eightsidedsquare.angling.cca.FishSpawningAccess;
 import com.eightsidedsquare.angling.common.entity.ai.FishLayRoeGoal;
 import com.eightsidedsquare.angling.common.entity.ai.FishMateGoal;
 import com.eightsidedsquare.angling.core.AnglingItems;
@@ -11,19 +12,52 @@ import net.minecraft.entity.mob.WaterCreatureEntity;
 import net.minecraft.entity.passive.FishEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(FishEntity.class)
-public abstract class FishEntityMixin extends WaterCreatureEntity {
+public abstract class FishEntityMixin extends WaterCreatureEntity implements FishSpawningAccess {
+
+    @Unique
+    private FishSpawningComponent angling$spawning;
+
+    @Override
+    public FishSpawningComponent angling$getFishSpawning() {
+        if (angling$spawning == null) {
+            angling$spawning = new FishSpawningComponent((FishEntity) (Object) this);
+        }
+        return angling$spawning;
+    }
+
+    @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
+    private void angling$writeSpawning(NbtCompound nbt, CallbackInfo ci) {
+        angling$getFishSpawning().writeEntityNbt(nbt);
+    }
+
+    @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
+    private void angling$readSpawning(NbtCompound nbt, CallbackInfo ci) {
+        angling$getFishSpawning().readEntityNbt(nbt);
+    }
+
+    @Inject(method = "copyDataToStack", at = @At("TAIL"))
+    private void angling$writeBucketSpawning(ItemStack stack, CallbackInfo ci) {
+        angling$getFishSpawning().writeEntityNbt(stack.getOrCreateNbt());
+    }
+
+    @Inject(method = "copyDataFromNbt", at = @At("TAIL"))
+    private void angling$readBucketSpawning(NbtCompound nbt, CallbackInfo ci) {
+        angling$getFishSpawning().readEntityNbt(nbt);
+    }
 
     public FishEntityMixin(EntityType<? extends FishEntity> entityType, World world) {
         super(entityType, world);
@@ -37,10 +71,9 @@ public abstract class FishEntityMixin extends WaterCreatureEntity {
 
     @Inject(method = "initGoals", at = @At("TAIL"))
     protected void initGoals(CallbackInfo ci) {
-        if(getType().isIn(AnglingEntityTypeTags.SPAWNING_FISH)) {
-            goalSelector.add(1, new FishLayRoeGoal(this));
-            goalSelector.add(3, new FishMateGoal(this));
-        }
+        // Tags load after entity constructors; the goals check the tag when starting.
+        goalSelector.add(1, new FishLayRoeGoal(this));
+        goalSelector.add(3, new FishMateGoal(this));
     }
 
     @Inject(method = "interactMob", at = @At("HEAD"), cancellable = true)
@@ -48,14 +81,16 @@ public abstract class FishEntityMixin extends WaterCreatureEntity {
         ItemStack stack = player.getStackInHand(hand);
         FishSpawningComponent component = AnglingEntityComponents.FISH_SPAWNING.get(this);
         if (!component.hasCooldown() && !component.isInLove()
-                && stack.isOf(AnglingItems.WORM)
+                && stack.isOf(AnglingItems.WORM.get())
                 && getType().isIn(AnglingEntityTypeTags.SPAWNING_FISH)) {
-            if(!player.getAbilities().creativeMode)
-                stack.decrement(1);
-            component.setLoveTicks(600);
-            component.setWasFed(true);
-            component.createHeartParticles();
-            cir.setReturnValue(ActionResult.success(world.isClient));
+            if (!getWorld().isClient) {
+                if(!player.getAbilities().creativeMode)
+                    stack.decrement(1);
+                component.setLoveTicks(600);
+                component.setWasFed(true);
+                component.createHeartParticles();
+            }
+            cir.setReturnValue(ActionResult.success(getWorld().isClient));
         }
     }
 

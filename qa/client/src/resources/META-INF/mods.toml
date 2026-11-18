@@ -1,0 +1,9 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="CC0-1.0"
+[[mods]]
+modId="angling_client_qa"
+version="1.0.0"
+displayTest="IGNORE_SERVER_VERSION"
+displayName="Angling local client QA (test-only)"
+description="Local framebuffer capture and resource-reload test harness. Never distribute with Angling."

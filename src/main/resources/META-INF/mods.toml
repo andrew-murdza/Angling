@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="CC0-1.0"
+[[mods]]
+modId="angling"
+version="${version}"
+displayName="Angling (Forge Port)"
+authors="EightSidedSquare, Diansu, Sillvia"
+credits="Original Angling by EightSidedSquare and contributors. Community Forge 1.20.1 port."
+displayURL="https://github.com/8s2/Angling"
+logoFile="assets/angling/icon.png"
+description='''Discover new fish and breed them all. An unofficial Forge 1.20.1 port of Angling.'''
+[[dependencies.angling]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,48)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.angling]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.angling]]
+modId="geckolib"
+mandatory=true
+versionRange="[4.4.9,5)"
+ordering="AFTER"
+side="BOTH"

@@ -1,0 +1,6 @@
+{
+  "type": "forge:add_features",
+  "biomes": "#angling:duckweed_biomes",
+  "features": "angling:patch_duckweed",
+  "step": "vegetal_decoration"
+}

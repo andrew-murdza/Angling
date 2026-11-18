@@ -11,8 +11,8 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.IntProperty;
-import net.minecraft.tag.BlockTags;
-import net.minecraft.tag.FluidTags;
+import net.minecraft.registry.tag.BlockTags;
+import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
@@ -29,11 +29,14 @@ public interface WormyBlock {
     default ActionResult addOrRemoveWorms(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand) {
         ItemStack stack = player.getStackInHand(hand);
         if(player.getMainHandStack().isEmpty() && stack.isEmpty()) {
+            if (world.isClient) return ActionResult.SUCCESS;
             decrementWorms(state, pos, world);
-            player.giveItemStack(new ItemStack(AnglingItems.WORM));
+            ItemStack worm = new ItemStack(AnglingItems.WORM.get());
+            if (!player.giveItemStack(worm)) player.dropItem(worm, false);
             world.playSound(null, pos.getX() + 0.5d, pos.getY() + 0.5d, pos.getZ() + 0.5d, AnglingSounds.ITEM_WORM_USE, SoundCategory.BLOCKS, 1, 1);
             return ActionResult.success(world.isClient);
-        }else if(stack.isOf(AnglingItems.WORM) && state.get(WORMS) < 3) {
+        }else if(stack.isOf(AnglingItems.WORM.get()) && state.get(WORMS) < 3) {
+            if (world.isClient) return ActionResult.SUCCESS;
             if(!player.getAbilities().creativeMode)
                 stack.decrement(1);
             incrementWorms(state, pos, world);

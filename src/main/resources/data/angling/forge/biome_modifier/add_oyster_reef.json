@@ -1,0 +1,6 @@
+{
+  "type": "forge:add_features",
+  "biomes": "#angling:oyster_reef_biomes",
+  "features": "angling:oyster_reef",
+  "step": "vegetal_decoration"
+}

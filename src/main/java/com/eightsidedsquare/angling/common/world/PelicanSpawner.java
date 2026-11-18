@@ -32,9 +32,9 @@ public class PelicanSpawner implements Spawner {
                 for(ServerPlayerEntity player : players) {
                     BlockPos spawnPos = player.getBlockPos().add(random.nextBetween(-RADIUS, RADIUS), random.nextBetween(20, 35), random.nextBetween(-RADIUS, RADIUS));
                     if(world.isSkyVisible(spawnPos) &&
-                            SpawnHelper.isClearForSpawn(world, spawnPos, world.getBlockState(spawnPos), world.getFluidState(spawnPos), AnglingEntities.PELICAN) &&
+                            SpawnHelper.isClearForSpawn(world, spawnPos, world.getBlockState(spawnPos), world.getFluidState(spawnPos), AnglingEntities.PELICAN.get()) &&
                             playerHasEntityBucketItem(player) &&
-                            (entity = AnglingEntities.PELICAN.create(world)) != null) {
+                            (entity = AnglingEntities.PELICAN.get().create(world)) != null) {
                         entity.refreshPositionAndAngles(spawnPos, 0, 0);
                         entity.initialize(world, world.getLocalDifficulty(spawnPos), SpawnReason.NATURAL, null, null);
                         world.spawnEntityAndPassengers(entity);

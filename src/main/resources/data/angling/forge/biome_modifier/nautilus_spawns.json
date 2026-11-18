@@ -1,0 +1,10 @@
+{
+  "type": "forge:add_spawns",
+  "biomes": "#angling:nautilus_spawn_in",
+  "spawners": {
+    "type": "angling:nautilus",
+    "weight": 4,
+    "minCount": 1,
+    "maxCount": 3
+  }
+}

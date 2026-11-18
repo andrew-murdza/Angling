@@ -11,7 +11,7 @@ import net.minecraft.entity.mob.PathAwareEntity;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.state.property.Properties;
-import net.minecraft.tag.BlockTags;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -25,7 +25,7 @@ public class SeaSlugLayEggsGoal extends MoveToTargetPosGoal {
     public SeaSlugLayEggsGoal(SeaSlugEntity entity) {
         super(entity, 1.25d, 6, 6);
         this.entity = entity;
-        this.world = entity.world;
+        this.world = entity.getWorld();
     }
 
     @Override
@@ -35,7 +35,7 @@ public class SeaSlugLayEggsGoal extends MoveToTargetPosGoal {
 
         if(new Vec3d(targetPos.getX() + 0.5d, targetPos.getY() + 1.5d, targetPos.getZ() + 0.5d).distanceTo(entity.getPos()) < 1d) {
             entity.setHasEggs(false);
-            world.setBlockState(targetPos.up(), AnglingBlocks.SEA_SLUG_EGGS.getDefaultState().with(Properties.WATERLOGGED, true), Block.NOTIFY_ALL);
+            world.setBlockState(targetPos.up(), AnglingBlocks.SEA_SLUG_EGGS.get().getDefaultState().with(Properties.WATERLOGGED, true), Block.NOTIFY_ALL);
             if(world.getBlockEntity(targetPos.up()) instanceof SeaSlugEggsBlockEntity eggsBlockEntity && entity.getMateData() != null){
                 eggsBlockEntity.setParentsData(entity.writeMateData(new NbtCompound()), entity.getMateData().copy());
                 eggsBlockEntity.setColor(entity.getBaseColor());

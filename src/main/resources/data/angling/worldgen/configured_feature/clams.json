@@ -1,0 +1,46 @@
+{
+  "type": "angling:waterloggable_patch",
+  "config": {
+    "to_place": {
+      "type": "minecraft:weighted_state_provider",
+      "entries": [
+        {
+          "data": {
+            "Name": "angling:clam",
+            "Properties": {
+              "facing": "north"
+            }
+          },
+          "weight": 1
+        },
+        {
+          "data": {
+            "Name": "angling:clam",
+            "Properties": {
+              "facing": "east"
+            }
+          },
+          "weight": 1
+        },
+        {
+          "data": {
+            "Name": "angling:clam",
+            "Properties": {
+              "facing": "south"
+            }
+          },
+          "weight": 1
+        },
+        {
+          "data": {
+            "Name": "angling:clam",
+            "Properties": {
+              "facing": "west"
+            }
+          },
+          "weight": 1
+        }
+      ]
+    }
+  }
+}

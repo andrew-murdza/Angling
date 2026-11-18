@@ -32,7 +32,7 @@ public class WaterFloatingPlant extends PlantBlock implements Fertilizable {
     }
 
     @Override
-    public boolean isFertilizable(BlockView world, BlockPos pos, BlockState state, boolean isClient) {
+    public boolean isFertilizable(net.minecraft.world.WorldView world, BlockPos pos, BlockState state, boolean isClient) {
         for(Direction d : Direction.Type.HORIZONTAL) {
             BlockPos offsetPos = pos.offset(d).down();
             if(canPlantOnTop(world.getBlockState(offsetPos), world, offsetPos) && world.getBlockState(offsetPos.up()).isAir()) {

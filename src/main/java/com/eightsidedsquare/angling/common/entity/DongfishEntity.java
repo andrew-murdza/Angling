@@ -17,17 +17,18 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib3.core.IAnimatable;
-import software.bernie.geckolib3.core.PlayState;
-import software.bernie.geckolib3.core.builder.AnimationBuilder;
-import software.bernie.geckolib3.core.controller.AnimationController;
-import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
-import software.bernie.geckolib3.core.manager.AnimationData;
-import software.bernie.geckolib3.core.manager.AnimationFactory;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-public class DongfishEntity extends FishEntity implements IAnimatable {
+public class DongfishEntity extends FishEntity implements GeoEntity {
 
-    AnimationFactory factory = new AnimationFactory(this);
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private static final TrackedData<Boolean> HAS_HORNGUS = DataTracker.registerData(DongfishEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
 
     public DongfishEntity(EntityType<? extends FishEntity> entityType, World world) {
@@ -38,12 +39,13 @@ public class DongfishEntity extends FishEntity implements IAnimatable {
     protected ActionResult interactMob(PlayerEntity player, Hand hand) {
         ItemStack stack = player.getStackInHand(hand);
         if(hasHorngus() && stack.isOf(Items.SHEARS)) {
+            if (getWorld().isClient) return ActionResult.SUCCESS;
             playSound(AnglingSounds.ENTITY_DONGFISH_SHEAR, 1, 1);
             setHasHorngus(false);
-            damage(DamageSource.player(player), 1);
+            damage(getDamageSources().playerAttack(player), 1);
             if(!player.getAbilities().creativeMode)
                 stack.damage(1, player, p -> p.sendToolBreakStatus(hand));
-            return ActionResult.success(world.isClient);
+            return ActionResult.success(getWorld().isClient);
         }
         return super.interactMob(player, hand);
     }
@@ -93,26 +95,26 @@ public class DongfishEntity extends FishEntity implements IAnimatable {
 
     @Override
     public ItemStack getBucketItem() {
-        return new ItemStack(AnglingItems.DONGFISH_BUCKET);
+        return new ItemStack(AnglingItems.DONGFISH_BUCKET.get());
     }
 
     @Override
-    public void registerControllers(AnimationData animationData) {
-        animationData.addAnimationController(new AnimationController<>(this, "controller", 2, this::controller));
+    public void registerControllers(AnimatableManager.ControllerRegistrar animationData) {
+        animationData.add(new AnimationController<>(this, "controller", 2, this::controller));
     }
 
-    private PlayState controller(AnimationEvent<DongfishEntity> event) {
+    private PlayState controller(AnimationState<DongfishEntity> event) {
         if(!touchingWater) {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.dongfish.flop", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.dongfish.flop"));
         }else {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.dongfish.idle", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.dongfish.idle"));
         }
         return PlayState.CONTINUE;
     }
 
     @Override
-    public AnimationFactory getFactory() {
-        return factory;
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 
     @Override

@@ -12,23 +12,24 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.tag.FluidTags;
+import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib3.core.IAnimatable;
-import software.bernie.geckolib3.core.PlayState;
-import software.bernie.geckolib3.core.builder.AnimationBuilder;
-import software.bernie.geckolib3.core.controller.AnimationController;
-import software.bernie.geckolib3.core.event.predicate.AnimationEvent;
-import software.bernie.geckolib3.core.manager.AnimationData;
-import software.bernie.geckolib3.core.manager.AnimationFactory;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
-public class NautilusEntity extends FishEntity implements IAnimatable {
+public class NautilusEntity extends FishEntity implements GeoEntity {
 
-    AnimationFactory factory = new AnimationFactory(this);
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
     public NautilusEntity(EntityType<? extends FishEntity> entityType, World world) {
         super(entityType, world);
@@ -53,36 +54,36 @@ public class NautilusEntity extends FishEntity implements IAnimatable {
 
     @Override
     public ItemStack getBucketItem() {
-        return new ItemStack(AnglingItems.NAUTILUS_BUCKET);
+        return new ItemStack(AnglingItems.NAUTILUS_BUCKET.get());
     }
 
     @Override
-    public void registerControllers(AnimationData animationData) {
-        animationData.addAnimationController(new AnimationController<>(this, "controller", 2, this::controller));
+    public void registerControllers(AnimatableManager.ControllerRegistrar animationData) {
+        animationData.add(new AnimationController<>(this, "controller", 2, this::controller));
     }
 
     @Override
     public void tickMovement() {
-        if(!this.isTouchingWater() && this.onGround && this.verticalCollision) {
+        if(!this.isTouchingWater() && this.isOnGround() && this.verticalCollision) {
             this.verticalCollision = false;
-        }else if(this.isAlive() && this.isTouchingWater() && world.isClient && this.getVelocity().length() > 0.025f) {
-            world.addParticle(ParticleTypes.BUBBLE, this.getX(), this.getEyeY(), this.getZ(), 0, 0, 0);
+        }else if(this.isAlive() && this.isTouchingWater() && getWorld().isClient && this.getVelocity().length() > 0.025f) {
+            getWorld().addParticle(ParticleTypes.BUBBLE, this.getX(), this.getEyeY(), this.getZ(), 0, 0, 0);
         }
         super.tickMovement();
     }
 
-    private PlayState controller(AnimationEvent<NautilusEntity> event) {
+    private PlayState controller(AnimationState<NautilusEntity> event) {
         if(event.isMoving() && isTouchingWater()) {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.nautilus.moving", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.nautilus.moving"));
         }else {
-            event.getController().setAnimation(new AnimationBuilder().addAnimation("animation.nautilus.idle", true));
+            event.getController().setAnimation(RawAnimation.begin().thenLoop("animation.nautilus.idle"));
         }
         return PlayState.CONTINUE;
     }
 
     @Override
-    public AnimationFactory getFactory() {
-        return factory;
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
     }
 
     @SuppressWarnings("deprecation")

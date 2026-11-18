@@ -18,7 +18,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.Properties;
-import net.minecraft.tag.FluidTags;
+import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -91,11 +91,14 @@ public class StarfishBlock extends FacingBlock implements BlockEntityProvider, W
 
     @Override
     public void onPlaced(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        if (world.isClient) return;
         NbtCompound nbt = BlockItem.getBlockEntityNbt(stack);
-        if(!dead && world.getBlockEntity(pos) instanceof StarfishBlockEntity entity){
+        if(world.getBlockEntity(pos) instanceof StarfishBlockEntity entity){
             if (nbt != null) {
-                entity.setColor(nbt.getInt("Color"));
-            } else {
+                entity.readNbt(nbt);
+                entity.markDirty();
+                world.updateListeners(pos, state, state, Block.NOTIFY_LISTENERS);
+            } else if (!dead) {
                 randomize(world, pos, world.getRandom());
             }
         }
@@ -109,6 +112,7 @@ public class StarfishBlock extends FacingBlock implements BlockEntityProvider, W
                 entity.setRainbow(true);
             }else {
                 entity.setColor(getRandomColor(random));
+                entity.setRainbow(false);
             }
         }
     }
@@ -119,9 +123,9 @@ public class StarfishBlock extends FacingBlock implements BlockEntityProvider, W
 
     @Override
     public void onBlockAdded(BlockState state, World world, BlockPos pos, BlockState oldState, boolean notify) {
-        randomize(world, pos, world.getRandom());
+        if (!world.isClient) randomize(world, pos, world.getRandom());
         if(shouldDie(state, world, pos)) {
-            world.createAndScheduleBlockTick(pos, this, 60 + world.getRandom().nextInt(40));
+            world.scheduleBlockTick(pos, this, 60 + world.getRandom().nextInt(40));
         }
         super.onBlockAdded(state, world, pos, oldState, notify);
     }
@@ -142,13 +146,13 @@ public class StarfishBlock extends FacingBlock implements BlockEntityProvider, W
 
     public BlockState getStateForNeighborUpdate(BlockState state, Direction direction, BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos) {
         if (state.get(WATERLOGGED)) {
-            world.createAndScheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
+            world.scheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
         }
         if(!canPlaceAt(state, world, pos)) {
             return Blocks.AIR.getDefaultState();
         }
         if(shouldDie(state, world, pos)) {
-            world.createAndScheduleBlockTick(pos, this, 60 + world.getRandom().nextInt(40));
+            world.scheduleBlockTick(pos, this, 60 + world.getRandom().nextInt(40));
         }
 
         return super.getStateForNeighborUpdate(state, direction, neighborState, world, pos, neighborPos);
@@ -161,7 +165,7 @@ public class StarfishBlock extends FacingBlock implements BlockEntityProvider, W
             if(world.getBlockEntity(pos) instanceof StarfishBlockEntity entity) {
                 rotation = entity.getRandomRotation();
             }
-            world.setBlockState(pos, AnglingBlocks.DEAD_STARFISH.getStateWithProperties(state));
+            world.setBlockState(pos, AnglingBlocks.DEAD_STARFISH.get().getStateWithProperties(state));
             if(world.getBlockEntity(pos) instanceof StarfishBlockEntity entity) {
                 entity.setRandomRotation(rotation);
             }

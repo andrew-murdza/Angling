@@ -1,7 +1,7 @@
 package com.eightsidedsquare.angling.common.feature;
 
 import com.mojang.serialization.Codec;
-import net.minecraft.tag.FluidTags;
+import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.StructureWorldAccess;
@@ -20,7 +20,7 @@ public class WaterAdjacentPatchFeature extends RandomPatchFeature {
         BlockPos pos = ctx.getOrigin();
         StructureWorldAccess world = ctx.getWorld();
         Vec3i offset = new Vec3i(5, 5, 5);
-        if(BlockPos.stream(pos.subtract(offset), pos.add(offset)).noneMatch(blockPos -> world.getFluidState(pos).isIn(FluidTags.WATER)))
+        if(BlockPos.stream(pos.subtract(offset), pos.add(offset)).noneMatch(blockPos -> world.getFluidState(blockPos).isIn(FluidTags.WATER)))
             return false;
         return super.generate(ctx);
     }

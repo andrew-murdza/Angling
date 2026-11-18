@@ -1,0 +1,6 @@
+{
+  "type": "forge:add_features",
+  "biomes": "#angling:clams_biomes",
+  "features": "angling:clams",
+  "step": "vegetal_decoration"
+}

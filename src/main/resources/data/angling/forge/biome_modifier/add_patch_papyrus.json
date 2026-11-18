@@ -1,0 +1,6 @@
+{
+  "type": "forge:add_features",
+  "biomes": "#angling:papyrus_biomes",
+  "features": "angling:patch_papyrus",
+  "step": "vegetal_decoration"
+}

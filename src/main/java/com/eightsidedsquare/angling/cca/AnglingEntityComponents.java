@@ -1,22 +1,16 @@
 package com.eightsidedsquare.angling.cca;
 
-import dev.onyxstudios.cca.api.v3.component.ComponentKey;
-import dev.onyxstudios.cca.api.v3.component.ComponentRegistryV3;
-import dev.onyxstudios.cca.api.v3.entity.EntityComponentFactoryRegistry;
-import dev.onyxstudios.cca.api.v3.entity.EntityComponentInitializer;
-import net.minecraft.entity.passive.FishEntity;
-import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.NotNull;
+import net.minecraft.entity.Entity;
 
-import static com.eightsidedsquare.angling.core.AnglingMod.MOD_ID;
+/** Access to the breeding state stored directly on every fish by FishEntityMixin. */
+public final class AnglingEntityComponents {
+    public static final FishStateAccessor FISH_SPAWNING = new FishStateAccessor();
 
-public class AnglingEntityComponents implements EntityComponentInitializer {
+    private AnglingEntityComponents() {}
 
-    public static final ComponentKey<FishSpawningComponent> FISH_SPAWNING =
-            ComponentRegistryV3.INSTANCE.getOrCreate(new Identifier(MOD_ID, "fish_spawning"), FishSpawningComponent.class);
-
-    @Override
-    public void registerEntityComponentFactories(@NotNull EntityComponentFactoryRegistry registry) {
-        registry.registerFor(FishEntity.class, FISH_SPAWNING, FishSpawningComponent::new);
+    public static final class FishStateAccessor {
+        public FishSpawningComponent get(Entity entity) {
+            return ((FishSpawningAccess) entity).angling$getFishSpawning();
+        }
     }
 }
